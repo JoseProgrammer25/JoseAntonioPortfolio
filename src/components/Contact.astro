@@ -45,12 +45,16 @@ import { Icon } from "astro-icon/components";
               class="w-full mt-1 p-3 rounded-lg bg-[#1E293B] border border-gray-600 text-white focus:ring-2 focus:ring-orange-400 outline-none"
             ></textarea>
           </div>
-          <button
-            type="submit"
-            class="w-full bg-orange-400 text-black font-bold py-3 rounded-xl hover:opacity-90 transition"
-          >
-            Enviar
-          </button>
+          <div class="relative">
+            <button
+              id="submitBtn"
+              type="submit"
+              class="w-full bg-orange-400 text-black font-bold py-3 rounded-xl hover:opacity-90 transition"
+            >
+              Enviar
+            </button>
+            <div id="formMessage" class="hidden absolute -bottom-8 left-0 right-0 text-center text-sm font-medium"></div>
+          </div>
         </form>
       </div>
 
@@ -96,13 +100,38 @@ import { Icon } from "astro-icon/components";
 </main>
 
 <script>
+  import confetti from 'canvas-confetti';
+
   const form = document.getElementById('contactForm') as HTMLFormElement;
+  const btn = document.getElementById('submitBtn') as HTMLButtonElement;
+  const msg = document.getElementById('formMessage') as HTMLDivElement;
+
+  function showMessage(text: string, color: string) {
+    msg.textContent = text;
+    msg.className = `absolute -bottom-8 left-0 right-0 text-center text-sm font-medium`;
+    msg.style.color = color;
+  }
+
+  function shakeButton() {
+    btn.classList.add('animate-shake');
+    btn.addEventListener('animationend', () => btn.classList.remove('animate-shake'), { once: true });
+  }
+
+  function fireConfetti() {
+    const rect = btn.getBoundingClientRect();
+    const x = (rect.left + rect.width / 2) / window.innerWidth;
+    const y = (rect.top + rect.height / 2) / window.innerHeight;
+    confetti({ particleCount: 80, spread: 70, origin: { x, y }, colors: ['#f97316', '#22c55e', '#3b82f6', '#eab308'] });
+  }
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
 
     try {
       const response = await fetch('/api/send-email', {
@@ -113,11 +142,29 @@ import { Icon } from "astro-icon/components";
 
       if (response.ok) {
         form.reset();
+        fireConfetti();
+        showMessage('¡Mensaje enviado!', '#22c55e');
       } else {
-        alert("Hubo un error al enviar el mensaje.");
+        shakeButton();
+        showMessage('Error al enviar el mensaje.', '#ef4444');
       }
     } catch (error) {
-      console.error(error);
+      shakeButton();
+      showMessage('Error de conexión.', '#ef4444');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Enviar';
     }
   });
 </script>
+
+<style>
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+  }
+  .animate-shake {
+    animation: shake 0.5s ease;
+  }
+</style>
