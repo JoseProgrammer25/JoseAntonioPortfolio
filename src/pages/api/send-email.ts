@@ -7,7 +7,7 @@ export const POST: APIRoute = async ({ request }) => {
   const { name, email, message } = data;
 
   const brevo = new BrevoClient({
-    apiKey: process.env.BREVO_API_KEY,
+    apiKey: process.env.BREVO_API_KEY || import.meta.env.BREVO_API_KEY,
   });
 
   try {
